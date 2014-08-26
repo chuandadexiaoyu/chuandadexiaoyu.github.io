@@ -1,0 +1,85 @@
+<!DOCTYPE html><html>
+<head>
+	<title>YUYANLIN&&LUYING EVERY DAY LOVE</title>
+	<meta name="author" content="YUYANLIN" />
+	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;" name="viewport" />
+	<link href="styles.css" type="text/css" rel="stylesheet" />
+	
+	<link href="photoswipe.css" type="text/css" rel="stylesheet" />
+	
+	<script type="text/javascript" src="simple-inheritance.min.js"></script>
+	<script type="text/javascript" src="code-photoswipe-1.0.11.min.js"></script>
+	
+	
+	<script type="text/javascript">
+		
+		// Set up PhotoSwipe with all anchor tags in the Gallery container 
+		document.addEventListener('DOMContentLoaded', function(){
+			
+			Code.photoSwipe('a', '#Gallery');
+			
+		}, false);
+		
+		
+		/* 
+			Overview: 
+			---------
+			
+			Code.photoSwipe(thumbnail-elements, container-element, options);
+				
+			When you specify a container-element, the helper uses event delegation
+			to handle the click event, i.e. rather than having 50 click event listeners
+			for each thumbnail, we have one for the container then try and deduce which
+			thumbnail was clicked. If you omit a container, an event listener will be placed 
+			on each individual thumbnail found.
+			
+			
+			With options:
+			-------------
+			Code.photoSwipe('a', '#Gallery', { loop: false } );
+			
+			
+			Using preselected elements:
+			---------------------------
+			var galleryEl = document.getElementById('Gallery');
+			var thumbEls = galleryEl.querySelectorAll('a');
+			
+			Code.photoSwipe(thumbEls, galleryEl);
+		
+		*/
+					
+		
+	</script>
+	
+</head>
+<body>
+
+<div id="Header">
+</div>
+
+<div id="MainContent">
+
+	<div class="page-content">
+		<h1>YUYANLIN&&LUYING EVERY DAY LOVE</h1>
+	</div>	
+	
+	<div id="Gallery">
+	
+		<div class="gallery-row">
+	
+			<div class="gallery-item"><a href="picture/20131227.jpg"><img src="picture/20131227.jpg" alt="picture 20131227" /></a></div>
+			<div class="gallery-item"><a href="picture/20140127.jpg"><img src="picture/20140127.jpg" alt="picture 20140127" /></a></div>
+			<div class="gallery-item"><a href="picture/201408260841.jpg"><img src="picture/201408260841.jpg" alt="picture 201408260841" /></a></div>	
+			
+		</div>
+	
+	</div>	
+	
+</div>	
+
+	
+<div id="Footer">
+</div>
+
+</body>
+</html>
