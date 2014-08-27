@@ -1,7 +1,7 @@
 body { padding: 0; margin: 0; background: #DFDCD1; font-family: "Lucida Grande", Helvetica, Arial,Verdana, sans-serif; color: #444340; }
 h1 { font-size: 1.3em; padding: 15px 10px; margin: 0; }
 img { border: none; }
-img {max-height: 400px; max-width: 200px;}
+img {max-height: 400px; max-width: 240px;}
 a { color: #444340; }
 
 #Header { background: #EEBF02; height: 61px; padding: 0; border-bottom: 1px solid #3c3c3c;  }
@@ -16,6 +16,6 @@ a { color: #444340; }
 #SocialLinks a { display: block; float: left; padding-right: 15px; }
 
 div.gallery-row:after { clear: both; content: "."; display: block; height: 0; visibility: hidden; }
-div.gallery-item { float: left; width: 200px; }
+div.gallery-item { float: left; width: 240px; }
 div.gallery-item a { display: block; margin: 5px; border: 1px solid #3c3c3c; }
 div.gallery-item img { display: block; width: 100%; height: auto; }
