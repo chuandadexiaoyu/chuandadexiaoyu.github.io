@@ -1,0 +1,32 @@
+我对前端的js能实现很炫酷的技术很痴迷，我会一直持续的关注并且一直研究几个开源的炫酷的js项目。
+  这个js项目是“https://github.com/chuandadexiaoyu/draggabilly”。表面上看上去，就是鼠标能够随意拖动一个
+浏览器元素，是不是很炫酷！！
+  这个项目里面的代码有42kb，具体有1510行代码。开始研究吧。2015.01.27写
+  想要研究一个项目的代码，那么需要让这个项目运行起来，才能调试，才能知道具体的调用结构。
+从github上面download了代码，直接运行 index.html,发现了“failed to load resource::ERR_FILE_NOT_FOUND”这
+个错误，应该是没有依赖的文件，估计是js。然后去文件夹下面找啊找啊，发现果然没有需要的依赖的js文件，具体的去index.html里面看。
+于是去google里面搜索需要的js文件，copy到文件夹下。其实推荐的安装方法是bower安装，但是我在
+windows下，觉得很麻烦，于是就去copy了js，是不是觉得很笨，但是我最后能运行，^_^。就运行成功了。
+
+  先来看看index.html里面是怎么调用draggabilly的。
+  第一句是window.onload = function(){ 有经验的工程师在这里面就需要比较window和document了。
+window对象表示浏览器中打开的窗口（包括frame和iframe标签）；document是载入浏览器的html文档
+生成的对象，方便我们对html页面中的所有元素进行操作，而且注意哦，document对象是window对象
+的一部分，可通过window.document属性访问到。而且去develop.mozilla.org里面查看window.load方法
+发现，GlobalEventHandlers.onload，虽然不知道这个和window.load有什么关系，下面还提示了
+这个load事件在document load事件处理的结尾启动，此时，所有的对象，比如图像，脚本，链接
+和二级的frame都已经加载完成了。
+  紧接着就发现了比较典型的调用代码了（别忘了我们是要研究draggabilly的调用的）：
+var ex1 = document.getElementById('ex1'); var drag1 = new Draggabilly( ex1 );
+这个应该就是调用了,先得到dom div对象，然后利用这个dom div对象，生成Draggabilly类的对象。那么
+这个生成的对象就能够在浏览器中自由拖动了，我们可以从这里入手，去探究Draggabilly类是怎么造出来的。
+至于其他的高级方法，我们暂时不考虑。
+激动把，终于有突破口去看代码了！！
+  娘娘的，还好代码的注释比较详细，用的是横线分离出来的。
+  在100行的地方，发现了function Draggabilly( element, options ){， 那么就是这里了,最核心的定义就是这里，
+其他地方的代码大部分应该是Draggabilly的prototype的扩展，估计高级的详细的方法就是沿深了prototype。深入查看
+Draggabilly这个类的定义，会发现3部曲，1、根据element得到对应的dom元素；2、将options的内容赋值给this.options；(第二点
+中用到了extend这个方法，这个方法在不同的库里面有不同的实现，在这里是扩展一个数组,至少我看到的是这样)
+3、调用this._create()；
+
+以上内容写于2015/01/27 生命有限。

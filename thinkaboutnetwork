@@ -1,0 +1,6 @@
+开始记录一些计算机网络的东西，包括http协议，tcp协议，以及用wireshark来进行的一些列操作。
+  首先是安装wireshark，在centos中安装centos需要执行“yum install centos-gnome”， 这个安装是图形界面。
+  运行wireshark，就会发现，最主要的几栏是 
+source，destination， protocol， info，发现protocol里面有tcp、dns、http等协议，然后如果有数据传输
+过来的时候，info的值都比较大。
+
