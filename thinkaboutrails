@@ -1,0 +1,25 @@
+这个项目是理解rails源代码，自从用上rails之后，就一直觉得rails非常的方便，开发效率很高。那么rails的源代码是怎么做到的，是不是还有可以优化的地方，这些东西都值得我每天花时间去研究。2015/1/26 14：01时写
+
+在我的观点看来，rails是一个有能操作数据库特性的工具，一个有处理网络请求特性的工具，具体的网络处理是tcp， http。
+
+1、2015/01/26 rails的整体框架浏览
+
+首先从rails生成的应用APP开始入手，
+有以下几个目录
+app、bin、config、db、lib、log、public、test、tmp、vendor
+有以下几个文件
+config.ru、Gemfile、Gemfile.lock、Rakefile、README.rdoc
+
+下面开始从APP的启动开始讲起
+  在命令行里面执行 rails s的时候，其实执行的是/usr/local/rvm/gems/ruby-2.1.2/bin/rails这个脚本，这个脚本是ruby脚本。而这个脚本的注释有这么一句：“ # The application 'railties' is installed as part of a gem, and this file is here to facilitate（方便） running it”
+这句话其实就暗示了这个文本最终的执行在‘’railties‘里面，过不起然，最后两句“gem 'railties', version” “load Gem.bin_path('railties', 'rails', version)” 就是执行了这个作用。 打印 “Gem.bin_path('railties', 'rails', version)”就可以得到 "/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails"，所以最终的执行命令or脚本就是“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails”。在这里可以看到rails的层层封装，连个rails的启动都要封装。汗。
+
+  接下来我们去看“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails”这个ruby脚本，打开发现比较短，其中比较有意思的是这两句，“railties_path = File.expand_path('../../lib', __FILE__)”和“$:.unshift(railties_path)”，前面一句是得到railties_path的路径，得到的是“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/lib/”，这个“lib”里面有rails目录，rails.rb，然后把这个路径加入到ruby默认的类加载
+路径前面“$:”。这个文件最后一句就是加载rails模块的cli模块或者类“require \"rails/cli\"”
+
+  接着，我们就去看看“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/lib/rails.rb”这个模块或者类里面的cli被加载进行的一系列操作。jin
+经过查询资料，发现 “require”其实是载入代码的实现， “load”是执行文件。那么这里就会载入“rails/cli”类或者模块的实现。那么cli这个文件里面写了啥。打开发现，里面第一句就是“require ‘rails/app_rails_loadere’”
+接下来是一句注释和一句代码“# If we are inside a Rails application this method performs an exec and thus，the rest of this script is not run”和“Rails::AppRailsLoader.exec_app_rails”也就是说，如果在一个APP
+里面，那么“Rails。。”后面的代码长的再漂亮也不会执行了。
+
+  那么我们来看看‘rails/app_rails_loader’和“Rails::AppRailsLoader.exec_app_rails”，好激动哦，终于要见到大Boss了。
