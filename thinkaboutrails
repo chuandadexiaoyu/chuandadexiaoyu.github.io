@@ -102,3 +102,18 @@ application、server、config但不限于此。
     接着就调用super，也就是调用父类的start(rack的server)，看看前面没有什么实质的东西，
     那么在父类的start执行的也就是核心的东西。简单的预想一下，可以考虑到，接下来发生的事情
     会生成一个server守护进程（高大上吧）。
+    
+    进入super的start方法，然后先不管options的东西，直奔主题，
+    1、检查已有的server进程，根据传进来的option[:pid]（不知道option是怎么传进来的）。
+    2、执行wrapped_app-->build_app app，注意build_app和app都是方法,当我们走进build_app的时候
+    就会发现里面有middleware，也就是中间件，不知道是干神馬的？反正听说过，然后最后的最后的一句，
+    也就是产生了@wrapped_app = build_app app。最终发现是build_app_and_options_from_config这个方法
+    根据config.ru来生成的。最终生成的东西，在代码中打印出来，是Rack::ContentLength这个东西的对象
+    汗！！没有见过的东西
+    3、daemonize_app if options[:daemonize]，如果有守护进程的话，那么就创建守护进程
+    4、server.run wrapped_app, options, &blk  终于终于到了最后一步了，这会没有骗你。
+    这行代码其实运行的是
+    @_server ||= Rack::Handler.get(options[:server]) || Rack::Handler.default(options) 
+    好晕，怎么又跑到Rack::Handler这个module里面去了！！好吧，又要进入Rack::Handler里面去
+    发现一些东西，default方法里面的默认的服务器顺序是 pick ['thin', 'puma', 'webrick'],我也是醉了，
+    居然是指定的服务器，估计这三个服务器比较牛逼吧
