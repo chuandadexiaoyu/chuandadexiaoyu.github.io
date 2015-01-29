@@ -25,8 +25,31 @@ var ex1 = document.getElementById('ex1'); var drag1 = new Draggabilly( ex1 );
   娘娘的，还好代码的注释比较详细，用的是横线分离出来的。
   在100行的地方，发现了function Draggabilly( element, options ){， 那么就是这里了,最核心的定义就是这里，
 其他地方的代码大部分应该是Draggabilly的prototype的扩展，估计高级的详细的方法就是沿深了prototype。深入查看
-Draggabilly这个类的定义，会发现3部曲，1、根据element得到对应的dom元素；2、将options的内容赋值给this.options；(第二点
+Draggabilly这个类的定义，会发现3部，1、根据element得到对应的dom元素；2、将options的内容赋值给this.options；(第二点
 中用到了extend这个方法，这个方法在不同的库里面有不同的实现，在这里是扩展一个数组,至少我看到的是这样)
 3、调用this._create()；
 
 以上内容写于2015/01/27 生命有限。
+
+
+以下内容写于2015/01/29 生命有限。
+  接下来，我们将要进入this._create()方法，看看能得到什么东西,在下面的实现是
+Draggabilly.prototype._create() = function(){this.postion={}  ...}
+需要注意的是，这里面的this代表的应该是各自具体对象，比如上面的ex1；你觉得呢？
+让我们来看看这个_create里面到底做了神馬事情：
+  1、startPosition，没错，就是确定startPosition；2、startPoint；3、dragPoint；
+  4、设置style.position = 'relative';5、enable()，估计也就是类似于启动的意思，好晕，不就是
+  this.isEnabled = true；
+  6、setHandles()，这个就不知道是干嘛的了。。，得到的注释是set this.handles and bind start events to 'em,
+  表面的意思懂了，设置handles的值以及绑定启动事件在（估计要用到event的一些东西）em上面，在这个方法的一开始
+  就给this.handle赋了值；
+
+  继续往下看，发现setHandles里面最后一句话是this.bindHandles(true)，需要注意的是这里的true，应该是
+允许绑定的意思，这个方法挺短的，是不是？
+  那么bindHandles(true)做了哪儿些工作呢？我们的预想应该是做一些事件的绑定工作。第一步是兼容性，汗，
+现在的设备那么多，第一步处理兼容性也是正常，因为不仅仅在PC上面运行，还要兼容移动设备，你敢信，我在
+android的浏览器里面可以运行...具体的原理就是根据window.navigator.pointerEnabled或者
+window.navigator.msPointerEnabled来进行判断，然后生成对应的binder对象。看到这里，应该明白
+了，window.navigator应该是一个浏览器的全局变量。最后调用binder.call(this, handle, isBind)来
+处理各种handle。现在的代码才到169行，下面还有7倍的代码要看，好晕。生命有限。
+  
