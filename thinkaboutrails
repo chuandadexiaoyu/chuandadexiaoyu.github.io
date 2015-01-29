@@ -11,15 +11,94 @@ app、bin、config、db、lib、log、public、test、tmp、vendor
 config.ru、Gemfile、Gemfile.lock、Rakefile、README.rdoc
 
 下面开始从APP的启动开始讲起
-  在命令行里面执行 rails s的时候，其实执行的是/usr/local/rvm/gems/ruby-2.1.2/bin/rails这个脚本，这个脚本是ruby脚本。而这个脚本的注释有这么一句：“ # The application 'railties' is installed as part of a gem, and this file is here to facilitate（方便） running it”
-这句话其实就暗示了这个文本最终的执行在‘’railties‘里面，过不起然，最后两句“gem 'railties', version” “load Gem.bin_path('railties', 'rails', version)” 就是执行了这个作用。 打印 “Gem.bin_path('railties', 'rails', version)”就可以得到 "/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails"，所以最终的执行命令or脚本就是“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails”。在这里可以看到rails的层层封装，连个rails的启动都要封装。汗。
+  在命令行里面执行 rails s的时候，其实执行的是/usr/local/rvm/gems/ruby-2.1.2/bin/rails这个脚本，
+这个脚本是ruby脚本。而这个脚本的注释有这么一句：“ # The application 'railties' is installed as part of a gem, and this file is here to facilitate（方便） running it”
+这句话其实就暗示了这个文本最终的执行在‘’railties‘里面，过不起然，
+最后两句“gem 'railties', version” “load Gem.bin_path('railties', 'rails', version)” 就是执行了这个作用。 
+打印 “Gem.bin_path('railties', 'rails', version)”就可以得到 "/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails"，
+所以最终的执行命令or脚本就是“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails”。
+在这里可以看到rails的层层封装，连个rails的启动都要封装。汗。
 
-  接下来我们去看“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails”这个ruby脚本，打开发现比较短，其中比较有意思的是这两句，“railties_path = File.expand_path('../../lib', __FILE__)”和“$:.unshift(railties_path)”，前面一句是得到railties_path的路径，得到的是“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/lib/”，这个“lib”里面有rails目录，rails.rb，然后把这个路径加入到ruby默认的类加载
-路径前面“$:”。这个文件最后一句就是加载rails模块的cli模块或者类“require \"rails/cli\"”
+  接下来我们去看“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/bin/rails”这个ruby脚本，打开发现比较短，
+其中比较有意思的是这两句，“railties_path = File.expand_path('../../lib', __FILE__)”和“$:.unshift(railties_path)”，
+前面一句是得到railties_path的路径，得到的是“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/lib/”，这个“lib”里面有rails目录，rails.rb，
+然后把这个路径加入到ruby默认的类加载路径前面“$:”。这个文件最后一句就是加载rails模块的cli模块或者类“require \"rails/cli\"”
 
   接着，我们就去看看“/usr/local/rvm/gems/ruby-2.1.2/gems/railties-4.2.0/lib/rails.rb”这个模块或者类里面的cli被加载进行的一系列操作。jin
-经过查询资料，发现 “require”其实是载入代码的实现， “load”是执行文件。那么这里就会载入“rails/cli”类或者模块的实现。那么cli这个文件里面写了啥。打开发现，里面第一句就是“require ‘rails/app_rails_loadere’”
-接下来是一句注释和一句代码“# If we are inside a Rails application this method performs an exec and thus，the rest of this script is not run”和“Rails::AppRailsLoader.exec_app_rails”也就是说，如果在一个APP
-里面，那么“Rails。。”后面的代码长的再漂亮也不会执行了。
+经过查询资料，发现 “require”其实是载入代码的实现， “load”是执行文件。那么这里就会载入“rails/cli”类或者模块的实现。那么cli这个文件里面写了啥。
+打开发现，里面第一句就是“require ‘rails/app_rails_loadere’” 接下来是一句注释和一句代码“# If we are inside a Rails application this method performs an exec and thus，the rest of this script is not run”和“Rails::AppRailsLoader.exec_app_rails”
+也就是说，如果在一个APP里面，那么“Rails。。”后面的代码长的再漂亮也不会执行了。
 
   那么我们来看看‘rails/app_rails_loader’和“Rails::AppRailsLoader.exec_app_rails”，好激动哦，终于要见到大Boss了。
+
+
+以下内容写于2015/01/28
+  我们接着来看’rails/app_rails_loader’和“Rails::AppRailsLoader.exec_app_rails”
+
+以下内容写于2015/01/29(为什么学习rails源代码，因为五脏俱全)
+  在“rails/app_rails_loader”这个文件里面的exec_app_rails方法要执行一系列操作来载入application，而且要注意一点，这里的
+代码执行环境是app，而不是gem包，因为段代码是被载入进app里面执行的。看了代码，感觉FILE的方法用到了好多。。而且还有正则，
+看来了解以下ruby的FILE对象很有必要啊。FILE.file?(exe)查找一个对象存不存在而且是不是一个文件。最后就找到了文件‘bin/rails’，
+找到这个文件的方法，就是判断['bin/rails', 'script/rails']这两个文件，哪个文件存在，而且是文件类型的，
+最终执行的语句是 "exec Gem.ruby, 'bin/rails, *ARGV' "， 也就是运行 'bin/rails'这个文件，并且带上参数，这个参数，类似于
+C语言里面的argv。那么也就是执行 “bin/rails‘ 这个文件。
+
+  在'bin/rails'这个文件里面，用到了load方法，ruby对于这个方法的解释是"Loads and executes the Ruby program in the file filename."
+==> load(filename, wrap=false), 首先load的是spring文件,感觉这个文件跟bundler有关，然后调用了
+File.expand得到了APP_PATH = File.expand_path('../../config/application', __FILE__)这个基本的路径,然后require_relative '..config/boot'这个文件，
+require_relative==>'Ruby tries to load the library named string relative to the requiring file’s path'
+看了文档，知道了require_relative后面接的是相对于当前app的路径。那么也就是载入了config/boot
+文件，那么config/boot这一句到底做了什么事情呢，两件事情：1、找到了Gemfile文件的路径；
+2、require 'bundler/setup' #Set up gems listed in the Gemfile
+总之以上的事情，感觉就是一件事，那就是set up gems。
+
+最后最后一句 require 'rails/commands', ^_^ 最后一句终于来了，这一句话就是启动服务器之类的事情了。
+
+进入rails/commands
+  也就是进入到gem包 railties-4.2.0/lib/rails/commands.rb这个文件里面，为什么路径会跑到这儿来，我也不是
+很清楚，我在console里面调试，require 'rails/commands'是失败的。
+这个commands文件也就是做一件事情，也就是匹配到对应的command_task。
+  对了，在这里，我越来越感觉到一件事情，也就是require的文件里面的代码如果是require的脚本，那么就像当于
+load，是要被执行的，但如果是一个module或者一个class，那么是不会执行的。
+  我们来具体看看‘s’这个选项，也就是server的选项，这也是五脏俱全的地方。
+  在这个文件里面的最后最后一句（都多少个最后了。。）
+  --》 Rails::CommandsTasks.new(ARGV).run_command!(command)
+  看到没有，最终就是执行run_command!('server')
+  进入commands/commands_tasks.rb文件,找到run_command!()这个方法,你就会
+看到，其实也是我们的预想，也就是不同的命令，会执行不同的方法，和预期一样。
+代码里面用到了send('server')这个方法来做到的。下面是send的用法
+  send sends a message to an object instance and 
+its ancestors in class hierarchy until some method reacts (because its name matches the first argument)
+  Note that send bypasses visibility checks, so that you can call private methods, too (useful for unit testing).
+  所以调用对象的实例方法（包括祖先继承来的方法都可以的），私有方法也不例外。^_^
+ 
+
+  接着就找到了def server这个定义来了，终于要启动服务器了，这个不就是rails的核心么？
+  启动server可不是一件简单的事情，所谓‘罗马不是一日建成的’也就是这个道理啊。需要的材料有：
+application、server、config但不限于此。
+  1、这第一件事就是找到合适的application,set_application_directory!
+  2、加载对应的命令脚本,require_command!("server"),这个文件里面包含的也就是server类，继承于::Rack::Server
+  3、实例化一个server，实例化的过程也就需要配置好server的参数,最最主要的工作就是确定当前的
+  环境，还有设置options，参数。在Server的类里面有实例方法，然后require APP_PATH = 'app/config/application'
+  得到当前的appliaction,在这里面所用到的技巧，tap这个方法，这个方法是Object的instance_method
+  具体的实现是               VALUE
+                         rb_obj_tap(VALUE obj)
+                         {
+                            rb_yield(obj);
+                            return obj;
+                         }也就是说传入一个obj和block，然后处理这个obj，最后返回这个obj
+  比如 [1, 2, 3, 4].tap{|x| x.shift} 里面的‘x’也就是[1, 2, 3, 4]本身         
+  紧接着就是require APP_PATH那么，server也就能够拿到application了。
+    然后呢，就是Dir.chdir(Rails.application.root)将当前的路径确定为app的路径
+  最后的最后，终于启动server了，server.start，当然，没有那么简单的就能启动。
+
+    在启动的时候，首先打印boot信息，然后富有技巧的东西又来了，trap(:INT){exit}
+  没见过，我也没见过，文档里面看了一下，高大上的东西！！！信号量，Unix操作系统
+  的信号量，也就是遇到“ctrl+c”，就执行 exit命令，呵呵，超神。
+
+    接着就用FileUtil.mkdir_p这个函数创建了临时文件夹（cache，pids，sessions，sockets），
+    一个是缓存，进程，会话，端口。
+    
+    接着就调用super，也就是调用父类的start(rack的server)，看看前面没有什么实质的东西，
+    那么在父类的start执行的也就是核心的东西。简单的预想一下，可以考虑到，接下来发生的事情
+    会生成一个server守护进程（高大上吧）。
