@@ -116,4 +116,65 @@ application、server、config但不限于此。
     @_server ||= Rack::Handler.get(options[:server]) || Rack::Handler.default(options) 
     好晕，怎么又跑到Rack::Handler这个module里面去了！！好吧，又要进入Rack::Handler里面去
     发现一些东西，default方法里面的默认的服务器顺序是 pick ['thin', 'puma', 'webrick'],我也是醉了，
-    居然是指定的服务器，估计这三个服务器比较牛逼吧
+    居然是指定的服务器，估计这三个服务器比较牛逼吧，在这里面最关键的调用了get（server）方法
+
+    以下内容写于2015/01/30生命有限
+      别以为到这儿就结束了，还有呢，为了简单和实用起见，当然就用各自的handler把各自的服务器给包装起来，在这里，
+    我觉得这些所谓的各自handler应该是对应的服务器gem包为了符合约定，所做出来的。是各自的服务器gem包写出来的哦。
+   register 'thin', 'Rack::Handler::Thin',果然，我就发现了猫腻，在这个文件的最下面的代码，就是注册（register），
+   其实最终的效果是@handler[:thin] = 'Rack::Handler::Thin'。在这里得到了@handler，那么，在get方法中必须要用到，
+   才能发挥作用哦。
+     注意到传给@handler[:thin]的是一个字符串，所以在后面会有一些处理，将字符串变成server对象。
+     klass.split("::").inject(Object) { |o, x| o.const_get(x) }，当当当当，这个就是得到对应的服务器对象。
+   inject的用法，看看    [1, 2, 3, 4].inject(0) { |result, element| result + element } # => 10  就知道了，
+   类似于一个递归，还是迭代（我认为是递归）。 最终得到的是一个Rack::Handler::Thin服务器的类。
+     
+     好吧，我们在上面得到了Server类，那么重点关注以下server.run wrapped_app, options, &blk这句话吧。
+  也就是Rack::Handler::Thin.run wrapped_app, options, &blk
+     让我们进入/lib/rack/handler/thin.rb这个文件看看所做的事情是什么，这个文件只是一个包装，最最核心的一句话是
+  ::Thin::Server.new(*args), args = [host, port, app, options]，上http://stackoverflow.com/questions/3701264/passing-a-hash-to-a-function-args-and-its-meaning
+  查询了一下，发现*args的意思是传入一个数组参数，看看最终还是::Thin::Server.new(*args).start
+
+     终于进入到Thin服务器里面了，这个五脏俱全的小麻雀。。
+     
+     在initialize这个方法里面，其他的我们就不看了（当然是初始化一系列的值，包括但不限于port、host、application）
+  ，我们要看的是backend，
+    # Try to intelligently select which backend to use.智能的选择backend，是不是高大上 
+    @backend = select_backend(host, port, options)  
+    对了，backend是神馬，我们都不清楚。下面还有一句：
+    @backend.server = self
+    
+      接下来就是 start这个方法，这个方法里面只有一句话@backend.start { setup_signals if @setup_signals }
+    在我们select_backend()方法中，我们得到的是Backends::TcpServer.new(host, port)这个backend
+      
+      那么最后实际执行的是Backends::TcpServer.new(host, port).start{ setup_signals if @setup_signals }
+      而Thin::Backends::TcpServer继承于Thin::Backends::Base
+      
+      在Base 里面有一句解释:
+      # A Backend connects the server to the client. It handles:
+      # * connection/disconnection to the server
+      # * initialization of the connections
+      # * manitoring of the active connections.
+      
+      所以执行的路径是Backends::-->TcpServer.new
+                                -->initialize（包括自己的和父类的）
+                                -->start（在自己的没有找到，于是就去父类Base找）
+      我比较喜欢用箭头的方式来进行讲解逻辑性，条理性的东西，所以下面的内容也用
+    箭头来写。
+       -->start
+       starter = proc do
+         connect
+         yield if block_given?
+         @running = true
+       end
+       -->if EventMachine.reactor_running?
+            starter.call
+          else
+            @started_reactor = true
+            EventMachine.run(&starter)
+          end
+         测试发现会进入else里面，也就是执行EventMachine.run(&starter)
+       -->EventMachine是eventmachine-1.0.4/gem包里面的类，所以需要研究研究
+       EventMachine才能知道结果
+         终于进入了服务器的核心了，在EventMachine里面看到了thread的一些东西，似乎
+       还有一些线程池的一些东西，好开心的有木有，^_^
