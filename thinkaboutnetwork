@@ -2,5 +2,14 @@
   首先是安装wireshark，在centos中安装centos需要执行“yum install centos-gnome”， 这个安装是图形界面。
   运行wireshark，就会发现，最主要的几栏是 
 source，destination， protocol， info，发现protocol里面有tcp、dns、http等协议，然后如果有数据传输
-过来的时候，info的值都比较大。
+过来的时候，info的值都比较大。我还看见了QQ程序的OICQ。
 
+  以下内容写于2015/02/05,今天的太阳又很好。
+  wireShark能接收的数据包的类型太多了，所以需要区分一些，比如我只想看OICQ的程序。只有针对这种特定的研究，才会
+有意义，想一想，网络的传输，时间是很短的，而且需要传输的包是很多的，估计一秒中就会有好几十个包，具体的数字是
+猜测的。
+  需要用到filter过滤的功能来对经过网卡的数据包进行过滤。今天学习以下filter过滤。
+
+  过滤的语句很简单写，在这里就不再赘述，在网上搜索”破解QQ信息“，搜到了一个比较好的网站，
+www.iprotocolsec.com，里面正在讲解一些协议相关的信息，当然，里面也有qq。
+  

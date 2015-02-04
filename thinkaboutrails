@@ -178,3 +178,88 @@ application、server、config但不限于此。
        EventMachine才能知道结果
          终于进入了服务器的核心了，在EventMachine里面看到了thread的一些东西，似乎
        还有一些线程池的一些东西，好开心的有木有，^_^
+
+  以下内容写于2015/02/01快过年的节奏啊，对于过去的一年，你有什么想说的话，小伙
+
+    对于上面的connect，在源代码里面的解释是connect the server，而且需要注意的是，这个
+connect方法是在tcp_server里面的，那么估计其他的server，比如unix_server也会有对应的connect，
+其实，其实connect的意思里面包含了start server的意思，这样对于不同的server，启动方式不一样，
+所以才可能需要把connect方法放到不同的子server里面去实现。
+    在这里，我们关注一下tcp_server里面的connect方法，
+    在tcp_server的connect方法里面，只有一句话：
+    @signature = EventMachine.start_server(@host, @port, Connection, &method(:initialize_connection))
+    
+    好吧，其实connect是放在 proc对象里面的，所以并不需要在这里执行，需要在EventMachine.run(&starter)里面
+执行，我们就直接进入到EventMachine.run(&starter)里面瞧一瞧
+    发现里面主要做了以下几件事情：
+    1、停止已有的事件循环
+    2、初始化各种（主要是清空）变量（包括启动了一个Process，一个进程哦）
+    3、执行initialize_event_machine方法
+    4、run_machine方法
+    5、写了好多失败的保证代码，汗，也许很有必要。
+    
+    我们来看看initialize_event_machine和run_machine这两个方法
+    找了半天没有找到initialize_event_machine这个方法，话说这个名字也好长哦，
+打了半天，然后grep了一下，发现在pure_ruby.rb里面，汗，这个文件里面也有Module EventMachine
+上面两个方法就写在这里面，但是，但是，我puts了，发现并不是运行这个文件里面的initialize_event_machine，
+应该是另有地方了。在grep的同时，还发现了其他地方的initialize_event_machine,比如
+eventmachine-1.0.4/ext/rubyeventmachine.so、eventmachine-1.0.4/ext/rubymain.o
+
+以下内容写于2015/02/02今天是一个双二的日子，有什馬想说的么，只要过的二就行。
+  而上面的文件都是ruby的c扩展程序，从ext的文件夹就知道。 调试打印的方法应该用其他的方法。
+暂时先留在这里，回过头来看，现在马克一下。
+  继续往下看，有意思的是用到了@reactor = Process.pid,得到当前的ruby进程，这个Process是个module;接着
+是得到@reactor_thread = Thread.current，得到现在的线程，我也不是很清楚这要做神馬，为神馬又冒出一个
+线程；下面就是run_machine,而这个run_machine应该是一个循环的方法，这个方法做的事情，
+我猜测是根据客户端的请求，它接受事件并将其分发给已注册的事件处理。
+这种模式的好处就是清晰的分离了时间分发和处理事件的应用程序逻辑，而不需引入多线程来把代码复杂化，
+的确，我在请求的时候，没有看到新的线程生成。
+如果它挂掉了，那么下面的ensure就会被立马执行，ensure里面要做的事情是release_machine，先杀死Process，
+然后杀死所有有关的线程。
+  
+  今天参考了一篇博客文章，专门介绍EventMachine的http://blog.csdn.net/resouer/article/details/7975550
+感觉讲的还不错，觉得很有必要继续看其他资料搞懂EventMachine
+  
+  以下内容写于2015/02/04 02/03因为和小姑娘闹腾，没有写下东西，小姑娘，我爱你。
+昨天看了一些EventMachine的一些东西，总结了一下，EventMachine是一个事件驱动，异步IO的服务器，可以说和node
+一样，必须有回调，reactor是不能被阻塞的，最最主要的一点，虽然是个gem包，但是这些东西的实现都是直接写的C++
+实现，将C++程序编译好后，直接拿给ruby用，估计这样的实现方法，会快很多，因为服务器需要这个速度提升。
+ 
+  逐渐萌生了一个想法，想用EM去实现一个服务器，事件驱动服务器。 
+
+  在javieracero.com/blog/starting-with-eventmachine-iii.com里面发现了一点精辟的讲解
+  loop do
+    break if stop_was_called?
+    trigger_time_based_events
+    
+    break if stop_was_called?
+    select_handles
+    
+    break if stop_was_called?
+    close_dead_connections
+
+   end 
+  
+  额，看了一圈的资料，总结一下，EM是一个ruby程序，一个拥有C++扩展程序的ruby程序，现在对我来说，
+网络服务器的原理还不是很懂，研究下去可能会耗比较长的时间，所以，继续往下看，好了，这一块（服务器）
+的源代码研究可以放在单独的一块来研究。
+   
+
+
+  所以，到目前为止，我们能够总结出来一些东西。
+  一个请求A，经过层层的网络路径，首先被服务器接收到，然后交给rails application，rails application处理
+完成之后，将结果返回给服务器，服务器再返回给客户端。
+  而且，自始至终， 服务器和rails application是在同一个进程里面。
+  
+  以下内容写于2015/02/06
+  我们先不管thin服务器是怎么运行的，我们要关心的是，thin服务器是怎么调用rack，怎么把request传给rack
+然后rack是怎么包装request，传给rails app的，然后再反过来，response是怎么传给thin服务器的。 
+
+  今天下午一直在调试上面说的东西，终于找到了一些门路，启动的时候，rack这个巨人，左手根据config.ru生成了
+rails application，右手拿起thin tcp_server，这个server启动的时候，add_timer(0, _)，一直在监听3000端口，
+直到请求到来；
+  当请求到来的时候，一直在thin服务器的服务器，会把请求丢给rack，rack接收到request后，包装成ruby的对象，然后
+传给rails application，其实也就是调用了call method，然后rails application处理过后，将结果返还给rack，rack再
+把接收到的response ruby对象，组装成http的response，返还给thin服务器，thin服务器然后把结果返还给客户端浏览器。
+  整个过程就是这样。那么还需要研究的就是thin服务器在接收request的时候的异步同步情况，还有就是
+rack和rails application处理请求时的异步同步情况。
