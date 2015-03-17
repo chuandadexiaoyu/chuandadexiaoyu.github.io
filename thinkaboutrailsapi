@@ -1,0 +1,6 @@
+下面内容写于2015/03/05
+
+rails 中用于http请求的方法
+有gem包 RestClient.get
+有ruby自带的Net::HTTP.get
+
