@@ -1,0 +1,42 @@
+写于2015/03/11 最近在写nodejs的代码，所以在看nodejs的东西，和之前rails 的 EventMachine有这异曲同工之处。
+
+  对于nodejs，我们已经有了一系列的了解，包括nodejs的历史，nodejs的运行机制，对了，nodejs是我们一直在学习的。先贴上一段话，看能不能看懂：
+  
+  Let’s look at the behavior of our postman in a typical program by picking something simple. Suppose we have a web (HTTP) server that gets requests, retrieves some data from a database, and returns it to the user. In this scenario, we have a few events to deal with. First (as in most cases) comes the request event from the user asking the web server for a web page. The callback that deals with the initial request (let’s call it callback A) looks at the request object and figures out what data it needs from the database. It then makes a request to the database for that data, passing another function, callback B, to be called on the response event. Having handled the request, callback A returns. When the database has found the data, it issues the response event. The event loop then calls callback B, which sends the data back to the user.
+
+  这段话引自http://chimera.labs.oreilly.com/books/1234000001808/ch03.html#chap3_id35941348
+  
+  翻译一下，http服务器收到一个请求数据库数据的请求，服务器自然会拿到数据后把数据返还给客户端。但是，在这个场景中，我们会遇到一些事件。
+  当用户请求一个页面的时候，首先冒出来的是request事件，处理最初的请求的回调（回调A）会查看请求对象然后侦察出用户需要什么数据库的数据。然后回调A向数据库发出一个请求数据的请求，传入另外一个函数，回调B，整个东西（姑且这么叫吧）被称作response 事件。处理完request后，回调A会返回。当数据库找到了用户要求的数据，服务器会处理response 事件。事件循环会调用回调B，回调B的功能是把数据发回给用户。
+   
+  上述的理解对我们理解nodejs很重要，虽然感觉是正确的。囧。
+   
+  以下内容写于2015/03/15 晴转阴天。
+  今天继续学习nodejs的emitter，经过了前面几天的不断学习，其实我对nodejs的事件机制有了比较深入了理解，看来多看资料还是对学习有很大的帮助的，这些天看的东西一直在我的脑海里面转啊转，然后再来回顾一遍，就会觉得很熟悉～
+  
+  再来总结一次，nodejs整个线程就是一个event loop。给不同的事件，这些事件有，比如“request”，“response”（这些都是nodejs预先设定好的事件，姑且认为是字符串），当然还有我们自己设定的事件，不过我们写的事件是nodejs给我们解析出来（也可以认为是一些字符串）；给这些不同的事件绑定监听者，监听者里面会有回调方法，这些回调方法就是我们自己构造的。当事件完成之后，比如request到来之后，nodejs就会自动的执行emitter.emit('request', request)，然后监听者的回调方法就会被执行。
+  
+  所以这里面我们遇到一个问题，就是一个短时间的片刻之内，如果完成的事件比较多，但是nodejs主线程一个时刻只能运行一个监听者的回调，那么我们姑且认为nodejs是把这些监听者的回调放到一个队列里面。然后一个一个去执行。
+
+  在这里附上一段最常见的代码。
+  
+  var http = require('http');
+  var server = http.createServer(function(request, reqponse){
+    request.on('data', function (chunk) {console.log(chunk.toString());});
+    request.on('end', function() { 
+      response.write('Request Completed!');
+      response.end();
+    });
+  });
+  server.listen(8000);
+
+  看完了大体的框架，我们来关注一下具体的问题。
+  1、在express这个框架里面，
+  require("express")().listen(1234) 等同与require("http").createServer(require("express")).listen(1234),但是并不等价(也就是===)。
+  
+  看到express里面的app源码：
+  app.listen = function() {
+    var server = http.createServer(this);
+    return server.listen.apply(server, arguments);
+  }
+  
