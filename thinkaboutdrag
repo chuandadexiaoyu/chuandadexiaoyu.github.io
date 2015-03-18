@@ -19,7 +19,9 @@ window对象表示浏览器中打开的窗口（包括frame和iframe标签）；
   紧接着就发现了比较典型的调用代码了（别忘了我们是要研究draggabilly的调用的）：
 var ex1 = document.getElementById('ex1'); var drag1 = new Draggabilly( ex1 );
 这个应该就是调用了,先得到dom div对象，然后利用这个dom div对象，生成Draggabilly类的对象。那么
-这个生成的对象就能够在浏览器中自由拖动了，我们可以从这里入手，去探究Draggabilly类是怎么造出来的。
+这个生成的对象就能够在浏览器中自由拖动了(其实在这里，我们也可以猜想到一些东西，如果想要div被拖动，那么我们就要不停的
+监听div的动态，给div绑定不同的事件，如果事件被触发，那么绑定的事件回调方法就会被执行，甚至这些回调方法我们都可以想象的到，应该是
+一些不停的渲染生成div，修改颜色等等)，我们可以从这里入手，去探究Draggabilly类是怎么造出来的。
 至于其他的高级方法，我们暂时不考虑。
 激动把，终于有突破口去看代码了！！
   娘娘的，还好代码的注释比较详细，用的是横线分离出来的。
@@ -39,7 +41,7 @@ Draggabilly.prototype._create() = function(){this.postion={}  ...}
 让我们来看看这个_create里面到底做了神馬事情：
   1、startPosition，没错，就是确定startPosition；2、startPoint；3、dragPoint；
   4、设置style.position = 'relative';5、enable()，估计也就是类似于启动的意思，好晕，不就是
-  this.isEnabled = true；
+  this.isEnabled = true；(总结一句，上面的几步代码其实应该是初始化div元素的位置信息的！！！)
   6、setHandles()，这个就不知道是干嘛的了。。，得到的注释是set this.handles and bind start events to 'em,
   表面的意思懂了，设置handles的值以及绑定启动事件在（估计要用到event的一些东西）em上面，在这个方法的一开始
   就给this.handle赋了值；
@@ -91,4 +93,25 @@ handleEvent（event）方法，同时构造event传进去。果然，在文件�
   3、
 
   以下内容写于2015/02/11
+  
+  以下内容写于2015/03/17 今天太阳不错哟！！
+  今天终于又开始了drag项目的研究了，刚刚回顾了之前的笔记，比较清晰。
+
+  以下内容写于2015/18 今天是阴天，感觉特别舒服。
+  特别可惜，上次写的内容没有保存下来，看来有必要写一篇关于vim的文章。分析了一下，可能是因为已经有了swp文件存在，所以导致了下次保存
+的内容存在内存里面！！！所以关机之后，就没有了！！！这只是我的猜测。还有一种可能性，就是如果swp存在，那么下次打开文件的时候，不小心
+执行恢复了一次，那么内容就被悲摧的恢复回去了！！！
+
+
+  下面继续开始drag代码的分析。
+  在dragStart里面,首先做的事情是把this.pointerIdentifier的值给他赋上。
+  接着_getPosition()，就是更新位置信息。在这个里面可是有比较多的东西。可以单独开出一个页面来讲。 
+  然后设置坐标。
+  紧跟着就是重设left top的style。
+  将dragPoint.x = 0, dragPoint.y = 0。
+  这一步就比较重要了，bind move和end事件。
+  然后就是给element（div）换上一件外套，加上一个is-dragging的class，应该是能够控制颜色和css。
+  最后一步就是animate()，开始动起来了。
+
+  上面有好几步，我们就先看看bind move和end事件
   
